@@ -123,7 +123,8 @@
                 boutons[i].disabled = true;
                 if (i === bonneReponse) boutons[i].style.backgroundColor = "green";
             }
-            if (choix === bonneReponse) {
+            // Ajout automatique de la réponse correcte dans le bloc-note, qu'elle soit bonne ou non
+            if (!reponsesCorrectes.includes(index + 1)) {
                 reponsesCorrectes.push(index + 1);
             }
         }
@@ -138,3 +139,4 @@
     </script>
 </body>
 </html>
+
