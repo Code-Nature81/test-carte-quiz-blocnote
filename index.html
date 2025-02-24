@@ -84,65 +84,73 @@
 
         L.control.layers({ "OSM": osm, "Satellite": satellite, "Topographique": topographique }).addTo(map);
 
-        // Chargement du tracé GPX
-        new L.GPX("circuit.gpx", {
+        // Chargement du tracé GPX et placement des marqueurs
+        var gpxLayer = new L.GPX("circuit.gpx", {
             async: true,
             polyline_options: { color: "blue", weight: 4, opacity: 0.75 }
         }).on("loaded", function(e) {
             map.fitBounds(e.target.getBounds());
-        }).addTo(map);
 
-        // Questions et réponses
-        var questions = [
-            { lat: 44.068869, lon: 2.15332, question: "Quel est l'ancien nom de Vindrac-Alayrac ?", reponses: ["Vindricum", "Vindraco", "Vindracum", "Vindratius"], correct: 2 },
-            { lat: 44.067318, lon: 2.159795, question: "Quel monument célèbre se trouve ici ?", reponses: ["Église Saint-Michel", "Château de la Roque", "Pont médiéval", "Fontaine romaine"], correct: 0 },
-            { lat: 44.071901, lon: 2.150365, question: "Quel célèbre personnage historique est passé ici ?", reponses: ["Henri IV", "Napoléon", "Charlemagne", "Louis XIV"], correct: 1 }
-        ];
+            // Récupérer les points du tracé
+            var points = e.target.getLayers()[0].getLatLngs();
 
-        var blocNote = [];
-        var answeredQuestions = new Set();
+            // Sélectionner 3 points du tracé pour les questions
+            var markerPositions = [points[Math.floor(points.length * 0.2)], points[Math.floor(points.length * 0.5)], points[Math.floor(points.length * 0.8)]];
 
-        function updateBlocNote() {
-            let blocNoteDiv = document.getElementById("blocnote-content");
-            blocNoteDiv.innerHTML = blocNote.length === 0 ? "Aucune réponse correcte." : "<b>Réponses correctes :</b> " + blocNote.join(", ");
-        }
+            var questions = [
+                { question: "Quel est l'ancien nom de Vindrac-Alayrac ?", reponses: ["Vindricum", "Vindraco", "Vindracum", "Vindratius"], correct: 2 },
+                { question: "Quel monument célèbre se trouve ici ?", reponses: ["Église Saint-Michel", "Château de la Roque", "Pont médiéval", "Fontaine romaine"], correct: 0 },
+                { question: "Quel célèbre personnage historique est passé ici ?", reponses: ["Henri IV", "Napoléon", "Charlemagne", "Louis XIV"], correct: 1 }
+            ];
 
-        questions.forEach((q, index) => {
-            var popupContent = `<b>Question ${index + 1} :</b> ${q.question}<br>`;
+            var blocNote = [];
+            var answeredQuestions = new Set();
 
-            q.reponses.forEach((reponse, repIndex) => {
-                popupContent += `<button onclick="checkAnswer(${index}, ${repIndex}, this)">${String.fromCharCode(65 + repIndex)}. ${reponse}</button><br>`;
-            });
-
-            L.marker([q.lat, q.lon], {
-                icon: L.icon({
-                    iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Red_Marker.svg',
-                    iconSize: [30, 45],
-                    iconAnchor: [15, 45],
-                    popupAnchor: [0, -45]
-                })
-            }).addTo(map).bindPopup(popupContent);
-        });
-
-        function checkAnswer(questionIndex, answerIndex, button) {
-            if (answeredQuestions.has(questionIndex)) return;
-
-            answeredQuestions.add(questionIndex);
-            var q = questions[questionIndex];
-            var buttons = button.parentNode.querySelectorAll("button");
-
-            buttons.forEach(btn => {
-                btn.disabled = true;
-                if (buttons[q.correct] === btn) {
-                    btn.style.backgroundColor = "green";
-                }
-            });
-
-            if (answerIndex === q.correct) {
-                blocNote.push(questionIndex + 1);
-                updateBlocNote();
+            function updateBlocNote() {
+                let blocNoteDiv = document.getElementById("blocnote-content");
+                blocNoteDiv.innerHTML = blocNote.length === 0 ? "Aucune réponse correcte." : "<b>Réponses correctes :</b> " + blocNote.join(", ");
             }
-        }
+
+            markerPositions.forEach((pos, index) => {
+                var q = questions[index];
+
+                var popupContent = `<b>Question ${index + 1} :</b> ${q.question}<br>`;
+
+                q.reponses.forEach((reponse, repIndex) => {
+                    popupContent += `<button onclick="checkAnswer(${index}, ${repIndex}, this)">${String.fromCharCode(65 + repIndex)}. ${reponse}</button><br>`;
+                });
+
+                L.marker(pos, {
+                    icon: L.icon({
+                        iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Red_Marker.svg',
+                        iconSize: [30, 45],
+                        iconAnchor: [15, 45],
+                        popupAnchor: [0, -45]
+                    })
+                }).addTo(map).bindPopup(popupContent);
+            });
+
+            window.checkAnswer = function(questionIndex, answerIndex, button) {
+                if (answeredQuestions.has(questionIndex)) return;
+
+                answeredQuestions.add(questionIndex);
+                var q = questions[questionIndex];
+                var buttons = button.parentNode.querySelectorAll("button");
+
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    if (buttons[q.correct] === btn) {
+                        btn.style.backgroundColor = "green";
+                    }
+                });
+
+                if (answerIndex === q.correct) {
+                    blocNote.push(questionIndex + 1);
+                    updateBlocNote();
+                }
+            };
+
+        }).addTo(map);
 
         // Gestion du bloc-note
         document.getElementById("blocnote-btn").addEventListener("click", function() {
