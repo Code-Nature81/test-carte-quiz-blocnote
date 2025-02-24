@@ -65,11 +65,11 @@
 
         new L.GPX('circuit.gpx', {
             async: true,
-           // marker_options: {
-               // startIconUrl: null,
-               // endIconUrl: null,
-               // shadowUrl: null
-           // }
+            marker_options: {
+                startIconUrl: null,
+                endIconUrl: null,
+                shadowUrl: null
+            }
         }).on('loaded', function(e) {
             map.fitBounds(e.target.getBounds());
         }).addTo(map);
@@ -139,4 +139,3 @@
     </script>
 </body>
 </html>
-
