@@ -35,10 +35,8 @@
     <div id="blocnote" onclick="afficherBlocnote()">📒 Bloc-Note</div>
 
     <script>
-        // Initialisation de la carte centrée sur Vindrac-Alayrac
         var map = L.map('map').setView([44.068869, 2.15332], 14);
 
-        // Ajout des calques de carte
         var calqueOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
         var calqueSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
@@ -48,14 +46,12 @@
             attribution: '© OpenTopoMap'
         });
 
-        // Ajout du contrôle des calques
         L.control.layers({
             "OpenStreetMap": calqueOSM,
             "Satellite": calqueSatellite,
             "Topographique": calqueTopographique
         }).addTo(map);
 
-        // Bouton de géolocalisation
         var geoButton = L.control({ position: 'topleft' });
         geoButton.onAdd = function () {
             var div = L.DomUtil.create('div', 'leaflet-control-custom');
@@ -67,8 +63,7 @@
         };
         geoButton.addTo(map);
 
-        // Chargement du tracé GPX
-        var gpx = new L.GPX('circuit.gpx', {
+        new L.GPX('circuit.gpx', {
             async: true,
             marker_options: {
                 startIconUrl: null,
@@ -79,7 +74,6 @@
             map.fitBounds(e.target.getBounds());
         }).addTo(map);
 
-        // Questions associées aux marqueurs
         var questions = [
             { lat: 44.065, lon: 2.160, text: "Quelle est la spécialité locale ?", reponses: ["A. Vin", "B. Fromage", "C. Pain", "D. Miel"], correct: 0 },
             { lat: 44.068, lon: 2.153, text: "Quelle année a été construit ce monument ?", reponses: ["A. 1200", "B. 1500", "C. 1800", "D. 1900"], correct: 1 },
@@ -88,7 +82,6 @@
 
         var reponsesCorrectes = [];
 
-        // Fonction pour créer une icône goutte d'eau avec numéro
         function createNumberedIcon(number) {
             return L.divIcon({
                 className: "custom-marker",
@@ -114,7 +107,6 @@
             });
         }
 
-        // Création des marqueurs avec popups interactifs
         questions.forEach((q, index) => {
             var marker = L.marker([q.lat, q.lon], { icon: createNumberedIcon(index + 1) }).addTo(map);
             var popupContent = `<b>Question ${index + 1} :</b> ${q.text}<br>`;
@@ -124,7 +116,6 @@
             marker.bindPopup(popupContent);
         });
 
-        // Fonction pour vérifier la réponse
         function verifierReponse(index, choix, bouton) {
             var bonneReponse = questions[index].correct;
             var boutons = bouton.parentNode.getElementsByTagName("button");
@@ -137,9 +128,12 @@
             }
         }
 
-        // Fonction pour afficher le bloc-note
         function afficherBlocnote() {
-            alert("Réponses correctes : " + (reponsesCorrectes.length ? reponsesCorrectes.join(", ") : "Aucune"));
+            var contenu = "<b>Réponses Correctes :</b><br>" + (reponsesCorrectes.length ? reponsesCorrectes.join(", ") : "Aucune réponse correcte enregistrée.");
+            L.popup()
+                .setLatLng(map.getCenter())
+                .setContent(contenu)
+                .openOn(map);
         }
     </script>
 </body>
