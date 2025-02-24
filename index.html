@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -10,34 +9,66 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.4.0/gpx.min.js"></script>
     <style>
         #map { height: 100vh; }
-        .custom-marker {
-            background-color: white;
-            border-radius: 50%;
-            padding: 4px;
-            text-align: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: black;
-            width: 20px;
-            height: 20px;
-        }
-        .bloc-note-popup {
+        
+        /* Bouton Bloc-note */
+        .blocnote-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
             background-color: red;
             color: white;
             padding: 10px;
-            border-radius: 10px;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            border: none;
+        }
+
+        .blocnote-content {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            max-width: 200px;
+        }
+
+        /* Bouton de géolocalisation */
+        .geoloc-btn {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: white;
+            border: 2px solid gray;
+            border-radius: 50%;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
+    
+    <button id="blocnote-btn" class="blocnote-btn">📒 Bloc-note</button>
+    <div id="blocnote-content" class="blocnote-content"></div>
+
+    <!-- Bouton de Géolocalisation -->
+    <button id="geoloc-btn" class="geoloc-btn">📍</button>
 
     <script>
         var map = L.map('map').setView([44.068869, 2.15332], 14);
 
-        // Ajouter les différents calques
+        // Ajouter les calques
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -51,44 +82,12 @@
             attribution: '© OpenTopoMap'
         });
 
-        var baseMaps = {
-            "OSM": osm,
-            "Satellite": satellite,
-            "Topographique": topographique
-        };
+        L.control.layers({ "OSM": osm, "Satellite": satellite, "Topographique": topographique }).addTo(map);
 
-        L.control.layers(baseMaps).addTo(map);
-
-        // Ajouter la géolocalisation de l'utilisateur
-        function onLocationFound(e) {
-            var radius = e.accuracy / 2;
-            L.marker(e.latlng, {icon: L.divIcon({className: 'custom-marker', html: '📍'})})
-                .addTo(map)
-                .bindPopup("Vous êtes ici").openPopup();
-            L.circle(e.latlng, radius).addTo(map);
-        }
-
-        function onLocationError(e) {
-            alert("Géolocalisation non disponible : " + e.message);
-        }
-
-        map.on('locationfound', onLocationFound);
-        map.on('locationerror', onLocationError);
-        map.locate({setView: true, maxZoom: 16});
-
-        // Ajouter le tracé GPX
-        var gpxLayer = new L.GPX("circuit.gpx", {
+        // Chargement du tracé GPX
+        new L.GPX("circuit.gpx", {
             async: true,
-            marker_options: {
-                startIconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-green.png',
-                endIconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-red.png',
-                shadowUrl: 'https://leafletjs.com/examples/custom-icons/leaf-shadow.png'
-            },
-            polyline_options: {
-                color: "blue",
-                weight: 4,
-                opacity: 0.75
-            }
+            polyline_options: { color: "blue", weight: 4, opacity: 0.75 }
         }).on("loaded", function(e) {
             map.fitBounds(e.target.getBounds());
         }).addTo(map);
@@ -101,42 +100,70 @@
         ];
 
         var blocNote = [];
-        var blocNotePopup = L.popup({ className: "bloc-note-popup" }).setContent("Réponses correctes : Aucune");
+        var answeredQuestions = new Set();
 
         function updateBlocNote() {
-            if (blocNote.length === 0) {
-                blocNotePopup.setContent("Réponses correctes : Aucune");
-            } else {
-                blocNotePopup.setContent("Réponses correctes : " + blocNote.join(", "));
-            }
+            let blocNoteDiv = document.getElementById("blocnote-content");
+            blocNoteDiv.innerHTML = blocNote.length === 0 ? "Aucune réponse correcte." : "<b>Réponses correctes :</b> " + blocNote.join(", ");
         }
 
         questions.forEach((q, index) => {
-            var marker = L.marker([q.lat, q.lon]).addTo(map).bindPopup(`
-                <b>Question ${index + 1} :</b> ${q.question}<br>
-                <button onclick="checkAnswer(${index}, 0)">A. ${q.reponses[0]}</button><br>
-                <button onclick="checkAnswer(${index}, 1)">B. ${q.reponses[1]}</button><br>
-                <button onclick="checkAnswer(${index}, 2)">C. ${q.reponses[2]}</button><br>
-                <button onclick="checkAnswer(${index}, 3)">D. ${q.reponses[3]}</button>
-            `);
+            var popupContent = `<b>Question ${index + 1} :</b> ${q.question}<br>`;
+            
+            q.reponses.forEach((reponse, repIndex) => {
+                popupContent += `<button onclick="checkAnswer(${index}, ${repIndex}, this)">${String.fromCharCode(65 + repIndex)}. ${reponse}</button><br>`;
+            });
+
+            L.marker([q.lat, q.lon], {
+                icon: L.icon({
+                    iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ed/Map_pin_icon.svg',
+                    iconSize: [30, 45],
+                    iconAnchor: [15, 45],
+                    popupAnchor: [0, -45]
+                })
+            }).addTo(map).bindPopup(popupContent);
         });
 
-        function checkAnswer(questionIndex, answerIndex) {
+        function checkAnswer(questionIndex, answerIndex, button) {
+            if (answeredQuestions.has(questionIndex)) return;
+
+            answeredQuestions.add(questionIndex);
             var q = questions[questionIndex];
-            var buttons = document.querySelectorAll(`button`);
+            var buttons = button.parentNode.querySelectorAll("button");
+
+            buttons.forEach(btn => btn.disabled = true);
 
             if (answerIndex === q.correct) {
-                buttons[answerIndex].style.backgroundColor = "green";
+                button.style.backgroundColor = "green";
                 blocNote.push(questionIndex + 1);
                 updateBlocNote();
             } else {
-                buttons[answerIndex].style.backgroundColor = "red";
+                button.style.backgroundColor = "red";
             }
         }
 
-        var blocNoteMarker = L.marker([44.066, 2.152], { icon: L.divIcon({ className: 'custom-marker', html: '📝' }) })
-            .addTo(map)
-            .bindPopup(blocNotePopup);
+        // Gestion du bloc-note
+        document.getElementById("blocnote-btn").addEventListener("click", function() {
+            var blocNoteDiv = document.getElementById("blocnote-content");
+            blocNoteDiv.style.display = (blocNoteDiv.style.display === "none" || blocNoteDiv.style.display === "") ? "block" : "none";
+        });
+
+        // Géolocalisation activable via bouton
+        var userMarker = null;
+
+        document.getElementById("geoloc-btn").addEventListener("click", function() {
+            map.locate({ setView: true, maxZoom: 16 });
+
+            map.on('locationfound', function(e) {
+                if (userMarker) map.removeLayer(userMarker);
+                userMarker = L.marker(e.latlng).addTo(map).bindPopup("📍 Vous êtes ici").openPopup();
+            });
+
+            map.on('locationerror', function() {
+                alert("⚠️ Géolocalisation non disponible.");
+            });
+        });
+
     </script>
 </body>
 </html>
