@@ -10,7 +10,7 @@
     <style>
         #map { height: 100vh; }
 
-        /* Bouton Bloc-note */
+        /* Bloc-note */
         .blocnote-btn {
             position: absolute;
             bottom: 20px;
@@ -84,7 +84,7 @@
 
         L.control.layers({ "OSM": osm, "Satellite": satellite, "Topographique": topographique }).addTo(map);
 
-        // Chargement du tracé GPX et placement des marqueurs
+        // Chargement du tracé GPX
         var gpxLayer = new L.GPX("circuit.gpx", {
             async: true,
             polyline_options: { color: "blue", weight: 4, opacity: 0.75 }
@@ -120,14 +120,26 @@
                     popupContent += `<button onclick="checkAnswer(${index}, ${repIndex}, this)">${String.fromCharCode(65 + repIndex)}. ${reponse}</button><br>`;
                 });
 
-                L.marker(pos, {
-                    icon: L.icon({
-                        iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Red_Marker.svg',
-                        iconSize: [30, 45],
-                        iconAnchor: [15, 45],
-                        popupAnchor: [0, -45]
-                    })
-                }).addTo(map).bindPopup(popupContent);
+                // Création d'un icône goutte d'eau avec un chiffre à l'intérieur
+                var iconHtml = `
+                    <div style="position:relative; width:35px; height:50px;">
+                        <svg width="35" height="50" viewBox="0 0 35 50" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.5,50 C8,36 0,25 0,17.5 C0,7.8 7.8,0 17.5,0 C27.2,0 35,7.8 35,17.5 C35,25 27,36 17.5,50 Z" fill="red"/>
+                        </svg>
+                        <div style="position:absolute; top:8px; left:50%; transform:translateX(-50%); font-size:18px; color:white; font-weight:bold;">
+                            ${index + 1}
+                        </div>
+                    </div>`;
+
+                var customIcon = L.divIcon({
+                    className: "custom-marker",
+                    html: iconHtml,
+                    iconSize: [35, 50],
+                    iconAnchor: [17, 50],
+                    popupAnchor: [0, -50]
+                });
+
+                L.marker(pos, { icon: customIcon }).addTo(map).bindPopup(popupContent);
             });
 
             window.checkAnswer = function(questionIndex, answerIndex, button) {
@@ -152,26 +164,10 @@
 
         }).addTo(map);
 
-        // Gestion du bloc-note
+        // Bloc-note
         document.getElementById("blocnote-btn").addEventListener("click", function() {
             var blocNoteDiv = document.getElementById("blocnote-content");
             blocNoteDiv.style.display = (blocNoteDiv.style.display === "none" || blocNoteDiv.style.display === "") ? "block" : "none";
-        });
-
-        // Géolocalisation activable via bouton
-        var userMarker = null;
-
-        document.getElementById("geoloc-btn").addEventListener("click", function() {
-            map.locate({ setView: true, maxZoom: 16 });
-
-            map.on('locationfound', function(e) {
-                if (userMarker) map.removeLayer(userMarker);
-                userMarker = L.marker(e.latlng).addTo(map).bindPopup("📍 Vous êtes ici").openPopup();
-            });
-
-            map.on('locationerror', function() {
-                alert("⚠️ Géolocalisation non disponible.");
-            });
         });
 
     </script>
