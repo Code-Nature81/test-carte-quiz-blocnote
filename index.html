@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.4.0/gpx.min.js"></script>
     <style>
         #map { height: 100vh; }
-        
+
         /* Bouton Bloc-note */
         .blocnote-btn {
             position: absolute;
@@ -109,14 +109,14 @@
 
         questions.forEach((q, index) => {
             var popupContent = `<b>Question ${index + 1} :</b> ${q.question}<br>`;
-            
+
             q.reponses.forEach((reponse, repIndex) => {
                 popupContent += `<button onclick="checkAnswer(${index}, ${repIndex}, this)">${String.fromCharCode(65 + repIndex)}. ${reponse}</button><br>`;
             });
 
             L.marker([q.lat, q.lon], {
                 icon: L.icon({
-                    iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ed/Map_pin_icon.svg',
+                    iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Red_Marker.svg',
                     iconSize: [30, 45],
                     iconAnchor: [15, 45],
                     popupAnchor: [0, -45]
@@ -131,14 +131,16 @@
             var q = questions[questionIndex];
             var buttons = button.parentNode.querySelectorAll("button");
 
-            buttons.forEach(btn => btn.disabled = true);
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (buttons[q.correct] === btn) {
+                    btn.style.backgroundColor = "green";
+                }
+            });
 
             if (answerIndex === q.correct) {
-                button.style.backgroundColor = "green";
                 blocNote.push(questionIndex + 1);
                 updateBlocNote();
-            } else {
-                button.style.backgroundColor = "red";
             }
         }
 
