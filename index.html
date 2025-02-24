@@ -1,186 +1,142 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Circuit de Randonnée - Vindrac-Alayrac</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.0/gpx.min.js"></script> <!-- Librairie pour GPX -->
-  
-  <style>
-    html, body, #map {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-    }
-    #blocnoteButton {
-      position: absolute;
-      top: 10px;
-      left: 40%;
-      z-index: 1500;
-      background: #cc0000;
-      color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #blocnotePopup {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #ffcccc;
-      padding: 20px;
-      border: 2px solid #cc0000;
-      border-radius: 4px;
-      z-index: 2000;
-      width: 80%;
-      max-width: 300px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte Interactive - Randonnée</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.4.0/gpx.min.js"></script>
+    <style>
+        #map { height: 100vh; }
+        .custom-marker {
+            background-color: white;
+            border-radius: 50%;
+            padding: 4px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: black;
+            width: 20px;
+            height: 20px;
+        }
+        .bloc-note-popup {
+            background-color: red;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-  <button id="blocnoteButton">Voir Blocnote</button>
-  <div id="map"></div>
-  <div id="blocnotePopup">
-    <h3>Blocnote</h3>
-    <div id="blocnoteContent">Aucune réponse correcte enregistrée.</div>
-    <button onclick="closeBlocnote()">Fermer</button>
-  </div>
 
-  <script>
-    var map = L.map('map').setView([43.7373, 2.5886], 14);
+    <div id="map"></div>
 
-    // Définition des calques
-    var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    <script>
+        var map = L.map('map').setView([44.068869, 2.15332], 14);
 
-    var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: '&copy; Esri & NASA'
-    });
+        // Ajouter les différents calques
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-    var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenTopoMap contributors'
-    });
+        var satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: '© Google Satellite'
+        });
 
-    // Contrôle des calques
-    L.control.layers({
-      "Carte Standard": osmLayer,
-      "Vue Satellite": satelliteLayer,
-      "Carte Topographique": topoLayer
-    }).addTo(map);
+        var topographique = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenTopoMap'
+        });
 
-    // Charger et afficher le tracé GPX
-    var gpxLayer = new L.GPX("circuit.gpx", {
-        async: true,
-        marker_options: {
-          startIconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-green.png',
-          endIconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-red.png',
-          shadowUrl: 'https://leafletjs.com/examples/custom-icons/leaf-shadow.png'
-        },
-        polyline_options: {
-          color: "blue",
-          weight: 4,
-          opacity: 1
+        var baseMaps = {
+            "OSM": osm,
+            "Satellite": satellite,
+            "Topographique": topographique
+        };
+
+        L.control.layers(baseMaps).addTo(map);
+
+        // Ajouter la géolocalisation de l'utilisateur
+        function onLocationFound(e) {
+            var radius = e.accuracy / 2;
+            L.marker(e.latlng, {icon: L.divIcon({className: 'custom-marker', html: '📍'})})
+                .addTo(map)
+                .bindPopup("Vous êtes ici").openPopup();
+            L.circle(e.latlng, radius).addTo(map);
         }
-      }).on("loaded", function(e) {
-        map.fitBounds(e.target.getBounds());
-      }).addTo(map);
-    // Fonctionnalités de la carte (questions, popups, blocnote)
-    var questions = [
-      {
-        lat: 43.7373,
-        lng: 2.5886,
-        question: "Quel monument est le plus connu à Vindrac-Alayrac ?",
-        options: ["Église Saint-Martin", "Château de Vindrac", "Musée du Tarn", "Place de la Liberté"],
-        correct: 0
-      },
-      {
-        lat: 43.7400,
-        lng: 2.5900,
-        question: "En quelle année le village a-t-il été fondé ?",
-        options: ["1200", "1300", "1400", "1500"],
-        correct: 1
-      },
-      {
-        lat: 43.7420,
-        lng: 2.5930,
-        question: "Quel événement historique a marqué ce circuit ?",
-        options: ["Bataille médiévale", "Révolte paysanne", "Festival du patrimoine", "Exposition rurale"],
-        correct: 2
-      }
-    ];
 
-    var markers = [];
-    var correctAnswers = [];
-
-    function updateBlocnoteContent() {
-      var contentDiv = document.getElementById("blocnoteContent");
-      contentDiv.textContent = correctAnswers.length === 0
-        ? "Aucune réponse correcte enregistrée."
-        : "Réponses correctes (numéros) : " + correctAnswers.join(", ");
-    }
-
-    function addToBlocnote(answerIndex) {
-      if (!correctAnswers.includes(answerIndex + 1)) {
-        correctAnswers.push(answerIndex + 1);
-        updateBlocnoteContent();
-      }
-    }
-
-    function createPopupContent(questionIndex) {
-      var item = questions[questionIndex];
-      var popupContent = "<b>" + item.question + "</b><br/>";
-      for (var i = 0; i < item.options.length; i++) {
-        var btnColor = (i === item.correct && markers[questionIndex].correctAnswered) ? 'background:green;' : '';
-        popupContent += "<button class='rep-btn' style='" + btnColor + 
-                        "' onclick='checkAnswer(" + questionIndex + "," + i + ", this)'>" 
-                        + item.options[i] + "</button><br/>";
-      }
-      return popupContent;
-    }
-
-    questions.forEach(function(item, index) {
-      var marker = L.marker([item.lat, item.lng]).addTo(map);
-      marker.correctAnswered = false;
-
-      marker.on('click', function() {
-        marker.bindPopup(createPopupContent(index)).openPopup();
-      });
-
-      markers.push(marker);
-    });
-
-    function checkAnswer(questionIndex, optionIndex, btnElement) {
-      var item = questions[questionIndex];
-      var marker = markers[questionIndex];
-
-      if (optionIndex === item.correct) {
-        btnElement.style.backgroundColor = "green";
-        btnElement.disabled = true;
-        if (!marker.correctAnswered) {
-          addToBlocnote(item.correct);
-          marker.correctAnswered = true;
+        function onLocationError(e) {
+            alert("Géolocalisation non disponible : " + e.message);
         }
-      } else {
-        btnElement.style.backgroundColor = "red";
-        setTimeout(() => btnElement.style.backgroundColor = "#007bff", 1000);
-      }
-    }
 
-    document.getElementById("blocnoteButton").addEventListener("click", function(){
-      document.getElementById("blocnotePopup").style.display = "block";
-    });
+        map.on('locationfound', onLocationFound);
+        map.on('locationerror', onLocationError);
+        map.locate({setView: true, maxZoom: 16});
 
-    function closeBlocnote() {
-      document.getElementById("blocnotePopup").style.display = "none";
-    }
-  </script>
+        // Ajouter le tracé GPX
+        var gpxLayer = new L.GPX("circuit.gpx", {
+            async: true,
+            marker_options: {
+                startIconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-green.png',
+                endIconUrl: 'https://leafletjs.com/examples/custom-icons/leaf-red.png',
+                shadowUrl: 'https://leafletjs.com/examples/custom-icons/leaf-shadow.png'
+            },
+            polyline_options: {
+                color: "blue",
+                weight: 4,
+                opacity: 0.75
+            }
+        }).on("loaded", function(e) {
+            map.fitBounds(e.target.getBounds());
+        }).addTo(map);
+
+        // Questions et réponses
+        var questions = [
+            { lat: 44.068869, lon: 2.15332, question: "Quel est l'ancien nom de Vindrac-Alayrac ?", reponses: ["Vindricum", "Vindraco", "Vindracum", "Vindratius"], correct: 2 },
+            { lat: 44.067318, lon: 2.159795, question: "Quel monument célèbre se trouve ici ?", reponses: ["Église Saint-Michel", "Château de la Roque", "Pont médiéval", "Fontaine romaine"], correct: 0 },
+            { lat: 44.071901, lon: 2.150365, question: "Quel célèbre personnage historique est passé ici ?", reponses: ["Henri IV", "Napoléon", "Charlemagne", "Louis XIV"], correct: 1 }
+        ];
+
+        var blocNote = [];
+        var blocNotePopup = L.popup({ className: "bloc-note-popup" }).setContent("Réponses correctes : Aucune");
+
+        function updateBlocNote() {
+            if (blocNote.length === 0) {
+                blocNotePopup.setContent("Réponses correctes : Aucune");
+            } else {
+                blocNotePopup.setContent("Réponses correctes : " + blocNote.join(", "));
+            }
+        }
+
+        questions.forEach((q, index) => {
+            var marker = L.marker([q.lat, q.lon]).addTo(map).bindPopup(`
+                <b>Question ${index + 1} :</b> ${q.question}<br>
+                <button onclick="checkAnswer(${index}, 0)">A. ${q.reponses[0]}</button><br>
+                <button onclick="checkAnswer(${index}, 1)">B. ${q.reponses[1]}</button><br>
+                <button onclick="checkAnswer(${index}, 2)">C. ${q.reponses[2]}</button><br>
+                <button onclick="checkAnswer(${index}, 3)">D. ${q.reponses[3]}</button>
+            `);
+        });
+
+        function checkAnswer(questionIndex, answerIndex) {
+            var q = questions[questionIndex];
+            var buttons = document.querySelectorAll(`button`);
+
+            if (answerIndex === q.correct) {
+                buttons[answerIndex].style.backgroundColor = "green";
+                blocNote.push(questionIndex + 1);
+                updateBlocNote();
+            } else {
+                buttons[answerIndex].style.backgroundColor = "red";
+            }
+        }
+
+        var blocNoteMarker = L.marker([44.066, 2.152], { icon: L.divIcon({ className: 'custom-marker', html: '📝' }) })
+            .addTo(map)
+            .bindPopup(blocNotePopup);
+    </script>
 </body>
 </html>
